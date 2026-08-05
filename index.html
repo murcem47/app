@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ff855f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>GIF Ranker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="app-bar">
+      <a class="brand" href="#setup-panel" aria-label="GIF Ranker home">
+        <span class="brand-mark">↟</span>
+        <span>GIF Ranker</span>
+      </a>
+      <span class="local-badge"><span></span> Private on this device</span>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">A better way to choose</p>
+      <h1>Build the GIF line-up you actually want to post.</h1>
+      <p class="intro">
+        Load your GIFs, narrow them down with considered head-to-head choices, then put your final picks in the
+        exact order you want for your post.
+      </p>
+    </section>
+
+    <nav class="workflow" aria-label="Ranking stages">
+      <div class="workflow-step is-active" id="workflow-load">
+        <span class="workflow-number">01</span>
+        <span><strong>Load</strong><small>Add your GIFs</small></span>
+      </div>
+      <div class="workflow-line"></div>
+      <div class="workflow-step" id="workflow-screen">
+        <span class="workflow-number">02</span>
+        <span><strong>Screen</strong><small>Two losses to exit</small></span>
+      </div>
+      <div class="workflow-line"></div>
+      <div class="workflow-step" id="workflow-order">
+        <span class="workflow-number">03</span>
+        <span><strong>Order</strong><small>Final posting order</small></span>
+      </div>
+    </nav>
+
+    <section class="panel" id="setup-panel">
+      <div class="panel-header">
+        <h2>1. Load your GIFs</h2>
+        <p>Everything runs in your browser. No uploads leave your phone.</p>
+      </div>
+
+      <label class="picker" for="gif-input">
+        <span class="picker-title">Choose GIF files</span>
+        <span class="picker-subtitle">Select all 30 at once from Files or Photos.</span>
+      </label>
+      <input id="gif-input" type="file" accept="image/gif" multiple>
+
+      <div class="setup-grid">
+        <label class="field">
+          <span>How many do you want to keep?</span>
+          <input id="top-count" type="number" min="1" max="200" value="20" inputmode="numeric">
+        </label>
+
+        <div class="field field-note">
+          <span>Why this is faster</span>
+          <p>
+            First, each GIF needs two losses before it can be removed. Then you will order the final group from
+            favorite to least favorite. Your progress saves automatically on this device.
+          </p>
+        </div>
+      </div>
+
+      <p class="status-message" id="setup-message">Waiting for your GIFs.</p>
+      <div class="actions setup-actions">
+        <button class="secondary-button hidden" id="resume-button" type="button">Resume saved session</button>
+        <button class="secondary-button hidden" id="clear-save-button" type="button">Clear saved session</button>
+      </div>
+      <p class="status-message" id="save-message"></p>
+    </section>
+
+    <section class="panel hidden" id="battle-panel">
+      <div class="panel-header">
+        <div>
+          <p class="stage-kicker" id="stage-kicker">Stage 1 of 2</p>
+          <h2 id="battle-title">Screening: narrow your selection</h2>
+        </div>
+        <p id="battle-subtitle">Tap the GIF you like more. If you mis-tap, use Undo.</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label" id="stat-primary-label">Still in</span>
+          <strong id="ranked-count">0 / 0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label" id="stat-secondary-label">Comparisons</span>
+          <strong id="comparison-count">0</strong>
+        </div>
+        <div class="stat">
+          <span class="stat-label" id="stat-tertiary-label">Removed</span>
+          <strong id="estimated-total">0</strong>
+        </div>
+      </div>
+
+      <div class="decision-copy">
+        <p class="decision-label" id="decision-label">Which GIF do you prefer?</p>
+        <p class="decision-hint" id="decision-hint"></p>
+      </div>
+
+      <div class="battle-grid">
+        <button class="gif-card" id="left-choice" type="button">
+          <span class="choice-badge" id="left-badge">Choice A</span>
+          <img id="left-image" alt="">
+          <span class="gif-name" id="left-name"></span>
+          <span class="tap-hint" id="left-tap-hint">Tap for this GIF</span>
+        </button>
+
+        <button class="gif-card" id="right-choice" type="button">
+          <span class="choice-badge choice-badge-secondary" id="right-badge">Choice B</span>
+          <img id="right-image" alt="">
+          <span class="gif-name" id="right-name"></span>
+          <span class="tap-hint" id="right-tap-hint">Tap for this GIF</span>
+        </button>
+      </div>
+
+      <div class="actions">
+        <button class="secondary-button" id="undo-button" type="button">Undo last tap</button>
+        <button class="secondary-button" id="restart-button" type="button">Restart ranking</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="results-panel">
+      <div class="panel-header">
+        <h2>3. Your final ranking is ready</h2>
+        <p>Your chosen GIFs are now in posting order.</p>
+      </div>
+
+      <div class="results-actions">
+        <button class="primary-button" id="export-top-button" type="button">Prepare ZIP</button>
+        <a class="primary-button hidden" id="download-zip-link" href="">Download ZIP</a>
+        <button class="secondary-button hidden" id="share-zip-button" type="button">Share ZIP</button>
+        <button class="primary-button" id="copy-top-button" type="button">Copy top list</button>
+        <button class="secondary-button" id="copy-all-button" type="button">Copy cut list</button>
+      </div>
+
+      <div class="results-block">
+        <div class="results-header">
+          <h3 id="top-list-heading">Top 20</h3>
+          <p id="top-list-copy"></p>
+        </div>
+        <ol class="ranking-list top-list" id="top-list"></ol>
+      </div>
+
+      <div class="results-block">
+        <div class="results-header">
+          <h3 id="cut-list-heading">Trimmed away</h3>
+          <p>The GIFs below did not make the keep list. They are not fully ranked.</p>
+        </div>
+        <ol class="ranking-list full-list" id="full-list"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
