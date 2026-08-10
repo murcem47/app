@@ -159,9 +159,37 @@ function createItemsFromFiles(files) {
     id: `gif-${index}`,
     name: file.name,
     file,
-    url: URL.createObjectURL(file)
+    url: URL.createObjectURL(file),
+    previewUrl: "",
+    previewPromise: null
   }));
   state.itemById = new Map(state.items.map((item) => [item.id, item]));
+}
+
+function getPreviewDataUrl(item) {
+  if (item.previewUrl) {
+    return Promise.resolve(item.previewUrl);
+  }
+
+  if (item.previewPromise) {
+    return item.previewPromise;
+  }
+
+  item.previewPromise = new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      item.previewUrl = String(reader.result || "");
+      item.previewPromise = null;
+      resolve(item.previewUrl);
+    };
+    reader.onerror = () => {
+      item.previewPromise = null;
+      reject(reader.error || new Error("Could not read GIF preview"));
+    };
+    reader.readAsDataURL(item.file);
+  });
+
+  return item.previewPromise;
 }
 
 function getRankedOpponent() {
@@ -294,13 +322,29 @@ function deserializeState(snapshot) {
 }
 
 function setGifImage(img, item) {
-  if (img.dataset.currentUrl === item.url) {
+  if (img.dataset.currentItemId === item.id) {
     return;
   }
 
-  img.dataset.currentUrl = item.url;
+  img.dataset.currentItemId = item.id;
+  img.dataset.currentUrl = item.previewUrl || item.url;
+  img.onerror = () => {
+    getPreviewDataUrl(item)
+      .then((dataUrl) => {
+        if (img.dataset.currentItemId === item.id && dataUrl) {
+          img.onerror = null;
+          img.dataset.currentUrl = dataUrl;
+          img.src = dataUrl;
+        }
+      })
+      .catch(() => {
+        if (img.dataset.currentItemId === item.id) {
+          img.alt = `${item.name} could not be previewed`;
+        }
+      });
+  };
   img.removeAttribute("src");
-  img.src = item.url;
+  img.src = item.previewUrl || item.url;
   img.alt = item.name;
 }
 
