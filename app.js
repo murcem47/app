@@ -175,19 +175,26 @@ function getPreviewDataUrl(item) {
     return item.previewPromise;
   }
 
-  item.previewPromise = new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      item.previewUrl = String(reader.result || "");
+  item.previewPromise = item.file
+    .arrayBuffer()
+    .then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      const chunkSize = 0x8000;
+      let binary = "";
+
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+      }
+
+      const mediaType = item.file.type || "image/gif";
+      item.previewUrl = `data:${mediaType};base64,${btoa(binary)}`;
       item.previewPromise = null;
-      resolve(item.previewUrl);
-    };
-    reader.onerror = () => {
+      return item.previewUrl;
+    })
+    .catch((error) => {
       item.previewPromise = null;
-      reject(reader.error || new Error("Could not read GIF preview"));
-    };
-    reader.readAsDataURL(item.file);
-  });
+      throw error;
+    });
 
   return item.previewPromise;
 }
