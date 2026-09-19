@@ -1,19 +1,12 @@
 const SAVE_FILES_KEY = "gif-ranker-files";
 const SAVE_STATE_KEY = "gif-ranker-state";
 const MAX_HISTORY = 250;
-const RANKING_MODES = {
-  quick: { lossLimit: 2, label: "Quick", screenLabel: "Two-loss screening" },
-  detailed: { lossLimit: 4, label: "Detailed", screenLabel: "Four-loss detailed screening" }
-};
 
 const elements = {
   gifInput: document.getElementById("gif-input"),
-  topCount: document.getElementById("top-count"),
   setCountOne: document.getElementById("set-count-1"),
   setCountTwo: document.getElementById("set-count-2"),
   setCountThree: document.getElementById("set-count-3"),
-  modeQuick: document.getElementById("mode-quick"),
-  modeDetailed: document.getElementById("mode-detailed"),
   workflowScreenCopy: document.getElementById("workflow-screen-copy"),
   setupMessage: document.getElementById("setup-message"),
   saveMessage: document.getElementById("save-message"),
@@ -89,7 +82,6 @@ const state = {
   setSize: 20,
   setCount: 1,
   activeSlideIndex: 0,
-  rankingMode: "quick",
   stage: "idle",
   persistenceAvailable: false,
   exportBlob: null,
@@ -100,31 +92,9 @@ const state = {
 let dbPromise = null;
 let saveTimer = null;
 
-function safeTopCount(value, totalItems) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return Math.min(20, totalItems);
-  }
-
-  return Math.min(parsed, totalItems);
-}
-
 function safeSetCount(value) {
   const parsed = Number.parseInt(value, 10);
   return [1, 2, 3].includes(parsed) ? parsed : 1;
-}
-
-function getRankingMode() {
-  return RANKING_MODES[state.rankingMode] || RANKING_MODES.quick;
-}
-
-function setRankingMode(mode) {
-  state.rankingMode = RANKING_MODES[mode] ? mode : "quick";
-  elements.modeQuick.checked = state.rankingMode === "quick";
-  elements.modeDetailed.checked = state.rankingMode === "detailed";
-  elements.modeQuick.closest(".mode-option").classList.toggle("is-selected", state.rankingMode === "quick");
-  elements.modeDetailed.closest(".mode-option").classList.toggle("is-selected", state.rankingMode === "detailed");
-  elements.workflowScreenCopy.textContent = `${getRankingMode().lossLimit} losses to exit`;
 }
 
 function setRankedSetCount(count) {
@@ -144,9 +114,8 @@ function setRankedSetCount(count) {
 
 function configureRankedSets(totalItems) {
   setRankedSetCount(elements.setCountThree.checked ? 3 : elements.setCountTwo.checked ? 2 : 1);
-  state.setSize = safeTopCount(elements.topCount.value, totalItems);
-  state.topCount = Math.min(state.setSize * state.setCount, totalItems);
-  elements.topCount.value = state.setSize;
+  state.topCount = totalItems;
+  state.setSize = Math.max(1, Math.ceil(totalItems / state.setCount));
 }
 
 function revokeAllUrls() {
@@ -154,12 +123,9 @@ function revokeAllUrls() {
 }
 
 function setInputsLocked(isLocked) {
-  elements.topCount.disabled = isLocked;
   elements.setCountOne.disabled = isLocked;
   elements.setCountTwo.disabled = isLocked;
   elements.setCountThree.disabled = isLocked;
-  elements.modeQuick.disabled = isLocked;
-  elements.modeDetailed.disabled = isLocked;
 }
 
 function resetUiForNewSession() {
@@ -222,7 +188,6 @@ function clearInMemoryState() {
   state.setSize = 20;
   state.setCount = 1;
   state.activeSlideIndex = 0;
-  state.rankingMode = "quick";
   state.stage = "idle";
   clearPreparedZip();
   setInputsLocked(false);
@@ -327,11 +292,10 @@ function restoreFromHistory() {
 
 function serializeState() {
   return {
-    version: 4,
+    version: 5,
     topCount: state.topCount,
     setSize: state.setSize,
     setCount: state.setCount,
-    rankingMode: state.rankingMode,
     screeningItemIds: state.screeningItems.map((item) => item.id),
     lossCounts: state.lossCounts,
     itemComparisonCounts: state.itemComparisonCounts,
@@ -368,14 +332,13 @@ function serializeState() {
 function deserializeState(snapshot) {
   const getItem = (id) => state.itemById.get(id) || null;
 
-  if (snapshot.version !== 2 && snapshot.version !== 3 && snapshot.version !== 4) {
+  if (snapshot.version !== 5) {
     throw new Error("This saved session uses an older ranking format");
   }
 
   state.setCount = safeSetCount(snapshot.setCount);
-  state.setSize = safeTopCount(snapshot.setSize || snapshot.topCount, state.items.length);
-  state.topCount = safeTopCount(snapshot.topCount, state.items.length);
-  state.rankingMode = RANKING_MODES[snapshot.rankingMode] ? snapshot.rankingMode : "quick";
+  state.topCount = state.items.length;
+  state.setSize = Math.max(1, Math.ceil(state.items.length / state.setCount));
   state.currentIndex = snapshot.currentIndex;
   state.currentItem = getItem(snapshot.currentItemId);
   state.searchLow = snapshot.searchLow;
@@ -480,14 +443,13 @@ function renderBattle() {
     : String(Math.max(state.topCount - state.currentIndex, 0));
 
   if (isScreening) {
-    const mode = getRankingMode();
     const leftLosses = state.lossCounts[state.currentItem.id] || 0;
     const rightLosses = state.lossCounts[rankedItem.id] || 0;
-    elements.stageKicker.textContent = `Stage 1 of 2 · ${mode.screenLabel}`;
+    elements.stageKicker.textContent = "Stage 1 of 2 · Detailed screening";
     elements.battleTitle.textContent = "Narrow down to your final group";
-    elements.battleSubtitle.textContent = `A GIF needs ${mode.lossLimit} losses before it is removed, so every choice has more context.`;
+    elements.battleSubtitle.textContent = "Every remaining GIF will continue into the final full ordering.";
     elements.decisionLabel.textContent = "Which GIF do you prefer?";
-    elements.decisionHint.textContent = `The losing GIF gets one loss. ${state.currentItem.name}: ${leftLosses}/${mode.lossLimit} · ${rankedItem.name}: ${rightLosses}/${mode.lossLimit}.`;
+    elements.decisionHint.textContent = `The losing GIF gets one loss. ${state.currentItem.name}: ${leftLosses} · ${rankedItem.name}: ${rightLosses}.`;
     elements.leftBadge.textContent = leftLosses > 0 ? `${leftLosses} loss${leftLosses === 1 ? "" : "es"} · still in` : "No losses yet";
     elements.rightBadge.textContent = rightLosses > 0 ? `${rightLosses} loss${rightLosses === 1 ? "" : "es"} · still in` : "No losses yet";
     elements.leftTapHint.textContent = "Tap if you prefer this GIF";
@@ -523,7 +485,7 @@ function renderResults() {
   elements.comparisonCount.textContent = String(state.comparisons);
   elements.estimatedTotal.textContent = String(state.cuts.length);
 
-  elements.topListHeading.textContent = `Final ${state.topCount}`;
+  elements.topListHeading.textContent = `Complete ranking · ${state.topCount} GIFs`;
   elements.cutListHeading.textContent = state.cuts.length > 0 ? "Trimmed away" : "No trimmed GIFs";
   elements.topListCopy.textContent = `${state.leaders.length} GIFs are ready for your post, in your final order.`;
 
@@ -666,7 +628,6 @@ function finishCurrentInsertion() {
 
 function startRanking() {
   clearPreparedZip();
-  setRankingMode(elements.modeDetailed.checked ? "detailed" : "quick");
   configureRankedSets(state.items.length);
   state.screeningItems = [...state.items];
   state.lossCounts = Object.fromEntries(state.items.map((item) => [item.id, 0]));
@@ -712,7 +673,7 @@ function handleDecision(preferCurrentItem) {
     state.lossCounts[loser.id] = (state.lossCounts[loser.id] || 0) + 1;
     state.lastPairKey = pairKey(state.currentItem, state.screeningOpponent);
 
-    if (state.lossCounts[loser.id] >= getRankingMode().lossLimit) {
+    if (state.lossCounts[loser.id] >= 4) {
       state.screeningItems = state.screeningItems.filter((item) => item.id !== loser.id);
       state.cuts.push(loser);
     }
@@ -1080,12 +1041,11 @@ async function loadFiles(fileList) {
   }
 
   clearInMemoryState();
-  setRankingMode(elements.modeDetailed.checked ? "detailed" : "quick");
   configureRankedSets(files.length);
   createItemsFromFiles(files);
   setInputsLocked(true);
 
-  elements.setupMessage.textContent = `${state.items.length} GIFs loaded. ${getRankingMode().screenLabel} is ready to start.`;
+  elements.setupMessage.textContent = `${state.items.length} GIFs loaded. Every GIF will be included in the full final ranking.`;
   elements.saveMessage.textContent = "Saving these GIFs locally so you can resume this session if needed.";
 
   await persistFiles();
@@ -1124,8 +1084,6 @@ async function restoreSavedSession() {
   deserializeState(snapshot);
   setInputsLocked(true);
 
-  elements.topCount.value = state.setSize;
-  setRankingMode(state.rankingMode);
   setRankedSetCount(state.setCount);
   elements.setupMessage.textContent = `Restored ${state.items.length} GIFs and your saved progress.`;
   elements.saveMessage.textContent = "Auto-save is on for this restored session too.";
@@ -1164,16 +1122,6 @@ elements.gifInput.addEventListener("change", async (event) => {
     await loadFiles(event.target.files);
   } catch (error) {
     elements.setupMessage.textContent = "Those GIFs could not be loaded cleanly. Try selecting them again.";
-  }
-});
-elements.modeQuick.addEventListener("change", () => {
-  if (elements.modeQuick.checked) {
-    setRankingMode("quick");
-  }
-});
-elements.modeDetailed.addEventListener("change", () => {
-  if (elements.modeDetailed.checked) {
-    setRankingMode("detailed");
   }
 });
 elements.setCountOne.addEventListener("change", () => {

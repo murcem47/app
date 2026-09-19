@@ -40,7 +40,7 @@
       <div class="workflow-line"></div>
       <div class="workflow-step" id="workflow-screen">
         <span class="workflow-number">02</span>
-        <span><strong>Screen</strong><small id="workflow-screen-copy">Two losses to exit</small></span>
+        <span><strong>Compare</strong><small id="workflow-screen-copy">Every GIF stays in</small></span>
       </div>
       <div class="workflow-line"></div>
       <div class="workflow-step" id="workflow-order">
@@ -57,57 +57,36 @@
 
       <label class="picker" for="gif-input">
         <span class="picker-title">Choose GIF files</span>
-        <span class="picker-subtitle">Select all 30 at once from Files or Photos.</span>
+        <span class="picker-subtitle">Select as many GIFs as you want. Every selected GIF is included in the complete ranking.</span>
       </label>
       <input id="gif-input" type="file" accept="image/gif" multiple>
+      <p class="upload-limit-note"><strong>No fixed upload cap.</strong> The practical limit depends on your PC’s available memory and storage, plus the size of your GIF files. For very large collections, smaller GIF files will keep the app more responsive.</p>
 
-      <div class="setup-grid">
-        <label class="field">
-          <span>GIFs in each ranked set</span>
-          <input id="top-count" type="number" min="1" max="200" value="20" inputmode="numeric">
-        </label>
-
+      <div class="setup-grid setup-summary">
         <div class="field field-note">
           <span>Why this is faster</span>
           <p>
-            First, each GIF needs two losses before it can be removed. Then you will order the final group from
-            favorite to least favorite. Your progress saves automatically on this device.
+            Every GIF you upload stays in the final ranking. You will put the complete list in order, then browse it
+            in polished slideshow sets. Your progress saves automatically on this device.
           </p>
         </div>
       </div>
 
       <fieldset class="set-selector" id="set-selector">
-        <legend>How many ranked sets?</legend>
-        <p class="mode-selector-intro">Each set has the number above. For example, two sets of 20 produces ranks #1–#20 and #21–#40.</p>
+        <legend>Split the final showcase into</legend>
+        <p class="mode-selector-intro">This changes only the final slideshow layout. Every uploaded GIF is still ranked, even if you choose one set.</p>
         <div class="set-options">
           <label class="set-option is-selected" for="set-count-1">
             <input id="set-count-1" name="set-count" type="radio" value="1" checked>
-            <strong>1 set</strong><span>Rank #1–#20</span>
+            <strong>1 set</strong><span>One complete slideshow</span>
           </label>
           <label class="set-option" for="set-count-2">
             <input id="set-count-2" name="set-count" type="radio" value="2">
-            <strong>2 sets</strong><span>Rank #1–#40</span>
+            <strong>2 sets</strong><span>Split the whole ranking in two</span>
           </label>
           <label class="set-option" for="set-count-3">
             <input id="set-count-3" name="set-count" type="radio" value="3">
-            <strong>3 sets</strong><span>Rank #1–#60</span>
-          </label>
-        </div>
-      </fieldset>
-
-      <fieldset class="mode-selector" id="mode-selector">
-        <legend>Choose your ranking depth</legend>
-        <p class="mode-selector-intro">Pick this before loading your GIFs. Detailed mode gives every GIF more chances before it can leave the selection.</p>
-        <div class="mode-options">
-          <label class="mode-option is-selected" for="mode-quick">
-            <input id="mode-quick" name="ranking-mode" type="radio" value="quick" checked>
-            <span class="mode-option-title">Quick</span>
-            <span class="mode-option-copy">Two losses to remove a GIF. Best when you want fewer comparisons.</span>
-          </label>
-          <label class="mode-option" for="mode-detailed">
-            <input id="mode-detailed" name="ranking-mode" type="radio" value="detailed">
-            <span class="mode-option-title">Detailed</span>
-            <span class="mode-option-copy">Four losses to remove a GIF. More matchups and a more considered shortlist.</span>
+            <strong>3 sets</strong><span>Split the whole ranking in three</span>
           </label>
         </div>
       </fieldset>

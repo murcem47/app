@@ -8,9 +8,8 @@ This folder now contains two iPhone-friendly versions:
 ## What it does
 
 - Lets you choose your GIF files directly in the browser
-- Uses a two-loss screening stage, so a GIF is never removed after just one comparison
-- Offers a detailed four-loss mode for a more considered shortlist with extra head-to-head choices
-- Fully orders the final top-`N` GIFs in a separate final-ranking stage
+- Fully ranks every GIF you upload—there is no 20-GIF cap
+- Splits the completed ranking into one, two, or three end-of-session slideshow sets
 - Auto-saves the browser session on the same device so you can refresh and resume
 - Exports the top GIFs themselves as a ZIP with numbered filenames so the order stays intact
 - Copies the keep list and cut list filenames as a backup

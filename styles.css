@@ -235,6 +235,17 @@ input {
   color: var(--muted);
 }
 
+.upload-limit-note {
+  margin: 12px 2px 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.upload-limit-note strong {
+  color: #ffd0b2;
+}
+
 #gif-input {
   position: absolute;
   width: 1px;
@@ -249,6 +260,28 @@ input {
   grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
   gap: 16px;
   margin-top: 18px;
+}
+
+.setup-summary {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.setup-summary .field-note {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(255, 135, 72, 0.25);
+}
+
+.setup-summary .field-note::after {
+  position: absolute;
+  top: -48px;
+  right: -26px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 135, 72, 0.26), transparent 68%);
+  content: "";
+  pointer-events: none;
 }
 
 .field {
@@ -321,6 +354,7 @@ input {
 .set-option.is-selected {
   border-color: var(--primary);
   background: linear-gradient(135deg, rgba(255, 135, 72, 0.16), rgba(255, 135, 72, 0.05));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16), inset 0 0 0 1px rgba(255, 135, 72, 0.12);
 }
 
 .set-option input {
@@ -660,12 +694,15 @@ input {
     #121419;
   background-size: 28px 28px;
   background-position: 0 0, 14px 14px;
+  box-shadow: inset 0 0 100px rgba(255, 135, 72, 0.055);
 }
 
 .slideshow-image {
   width: min(100%, 680px);
   height: min(60vh, 540px);
   object-fit: contain;
+  filter: drop-shadow(0 20px 28px rgba(0, 0, 0, 0.36));
+  animation: slide-arrive 280ms ease-out;
 }
 
 .slideshow-rank {
@@ -733,6 +770,11 @@ input {
 .slideshow-button:hover:not(:disabled) {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+@keyframes slide-arrive {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .slideshow-button:disabled {
