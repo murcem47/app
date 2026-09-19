@@ -4,6 +4,8 @@ const MAX_HISTORY = 250;
 
 const elements = {
   gifInput: document.getElementById("gif-input"),
+  startRankingButton: document.getElementById("start-ranking-button"),
+  resetSelectionButton: document.getElementById("reset-selection-button"),
   setCountOne: document.getElementById("set-count-1"),
   setCountTwo: document.getElementById("set-count-2"),
   setCountThree: document.getElementById("set-count-3"),
@@ -123,9 +125,17 @@ function revokeAllUrls() {
 }
 
 function setInputsLocked(isLocked) {
+  elements.gifInput.disabled = isLocked;
   elements.setCountOne.disabled = isLocked;
   elements.setCountTwo.disabled = isLocked;
   elements.setCountThree.disabled = isLocked;
+}
+
+function updateSelectionUi() {
+  const hasEnoughGifs = state.items.length >= 2;
+  const isSetup = state.stage === "idle";
+  elements.startRankingButton.classList.toggle("hidden", !isSetup || !hasEnoughGifs);
+  elements.resetSelectionButton.classList.toggle("hidden", !isSetup || state.items.length === 0);
 }
 
 function resetUiForNewSession() {
@@ -139,6 +149,7 @@ function resetUiForNewSession() {
   elements.downloadZipLink.classList.add("hidden");
   elements.shareZipButton.classList.add("hidden");
   renderWorkflow("load");
+  updateSelectionUi();
 }
 
 function renderWorkflow(stage) {
@@ -191,17 +202,25 @@ function clearInMemoryState() {
   state.stage = "idle";
   clearPreparedZip();
   setInputsLocked(false);
+  updateSelectionUi();
 }
 
 function createItemsFromFiles(files) {
-  state.items = files.map((file, index) => ({
-    id: `gif-${index}`,
+  state.items = [];
+  appendItemsFromFiles(files);
+}
+
+function appendItemsFromFiles(files) {
+  const firstIndex = state.items.length;
+  const additions = files.map((file, index) => ({
+    id: `gif-${firstIndex + index}`,
     name: file.name,
     file,
     url: URL.createObjectURL(file),
     previewUrl: "",
     previewPromise: null
   }));
+  state.items.push(...additions);
   state.itemById = new Map(state.items.map((item) => [item.id, item]));
 }
 
@@ -1031,7 +1050,58 @@ async function sharePreparedZip() {
   }
 }
 
+function getGifFiles(fileList) {
+  return Array.from(fileList).filter((file) => file.type === "image/gif" || file.name.toLowerCase().endsWith(".gif"));
+}
+
+async function addFilesToSelection(fileList) {
+  const files = getGifFiles(fileList);
+
+  if (files.length === 0) {
+    elements.setupMessage.textContent = "That batch did not contain any GIF files. Try choosing GIFs from Files.";
+    return;
+  }
+
+  if (state.stage !== "idle") {
+    elements.setupMessage.textContent = "Restart or finish the current ranking before adding another batch.";
+    return;
+  }
+
+  appendItemsFromFiles(files);
+  updateSelectionUi();
+  elements.setupMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} added across your batches. Add another batch, or start the full ranking.`;
+  elements.saveMessage.textContent = "Your selection will be saved once you start ranking.";
+}
+
+async function startSelectedRanking() {
+  if (state.items.length < 2) {
+    elements.setupMessage.textContent = "Add at least 2 GIFs before starting.";
+    return;
+  }
+
+  configureRankedSets(state.items.length);
+  setInputsLocked(true);
+  elements.setupMessage.textContent = `${state.items.length} GIFs loaded. Every GIF will be included in the full final ranking.`;
+  elements.saveMessage.textContent = "Saving these GIFs locally so you can resume this session if needed.";
+  await persistFiles();
+  startRanking();
+}
+
+async function resetSelectedGifs() {
+  clearInMemoryState();
+  resetUiForNewSession();
+  elements.gifInput.value = "";
+  elements.setupMessage.textContent = "Selected GIFs cleared. Add a batch to begin again.";
+  elements.saveMessage.textContent = "";
+  await clearSavedSession();
+}
+
 async function loadFiles(fileList) {
+  // Maintained as an alias for any existing integrations using the old loader.
+  return addFilesToSelection(fileList);
+}
+
+async function legacyStartFromFiles(fileList) {
   const files = Array.from(fileList).filter((file) => file.type === "image/gif" || file.name.toLowerCase().endsWith(".gif"));
 
   if (files.length < 2) {
@@ -1041,15 +1111,8 @@ async function loadFiles(fileList) {
   }
 
   clearInMemoryState();
-  configureRankedSets(files.length);
-  createItemsFromFiles(files);
-  setInputsLocked(true);
-
-  elements.setupMessage.textContent = `${state.items.length} GIFs loaded. Every GIF will be included in the full final ranking.`;
-  elements.saveMessage.textContent = "Saving these GIFs locally so you can resume this session if needed.";
-
-  await persistFiles();
-  startRanking();
+  appendItemsFromFiles(files);
+  await startSelectedRanking();
 }
 
 async function restoreSavedSession() {
@@ -1122,7 +1185,16 @@ elements.gifInput.addEventListener("change", async (event) => {
     await loadFiles(event.target.files);
   } catch (error) {
     elements.setupMessage.textContent = "Those GIFs could not be loaded cleanly. Try selecting them again.";
+  } finally {
+    // Let iOS return the same file in a later batch if needed.
+    event.target.value = "";
   }
+});
+elements.startRankingButton.addEventListener("click", () => {
+  startSelectedRanking();
+});
+elements.resetSelectionButton.addEventListener("click", () => {
+  resetSelectedGifs();
 });
 elements.setCountOne.addEventListener("change", () => {
   if (elements.setCountOne.checked) {

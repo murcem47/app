@@ -56,11 +56,11 @@
       </div>
 
       <label class="picker" for="gif-input">
-        <span class="picker-title">Choose GIF files</span>
-        <span class="picker-subtitle">Select as many GIFs as you want. Every selected GIF is included in the complete ranking.</span>
+        <span class="picker-title">Add a GIF batch</span>
+        <span class="picker-subtitle">You can add more batches before ranking. Every GIF you add is included in the complete ranking.</span>
       </label>
       <input id="gif-input" type="file" accept="image/gif" multiple>
-      <p class="upload-limit-note"><strong>No fixed upload cap.</strong> The practical limit depends on your PC’s available memory and storage, plus the size of your GIF files. For very large collections, smaller GIF files will keep the app more responsive.</p>
+      <p class="upload-limit-note"><strong>No fixed upload cap.</strong> On iPhone or iPad, if the picker only adds part of a large selection, tap “Add a GIF batch” again for the next group. The practical limit depends on available memory, storage, and GIF size.</p>
 
       <div class="setup-grid setup-summary">
         <div class="field field-note">
@@ -91,8 +91,10 @@
         </div>
       </fieldset>
 
-      <p class="status-message" id="setup-message">Waiting for your GIFs.</p>
+      <p class="status-message" id="setup-message">Add at least 2 GIFs to start.</p>
       <div class="actions setup-actions">
+        <button class="primary-button hidden" id="start-ranking-button" type="button">Start full ranking</button>
+        <button class="secondary-button hidden" id="reset-selection-button" type="button">Reset selected GIFs</button>
         <button class="secondary-button hidden" id="resume-button" type="button">Resume saved session</button>
         <button class="secondary-button hidden" id="clear-save-button" type="button">Clear saved session</button>
       </div>
