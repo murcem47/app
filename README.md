@@ -7,8 +7,8 @@ This folder now contains two iPhone-friendly versions:
 
 ## What it does
 
-- Lets you choose your GIF files directly in the browser
-- Fully ranks every GIF you upload—there is no 20-GIF cap
+- Lets you choose GIFs and image files directly in the browser
+- Fully ranks every GIF or image you upload—there is no 20-file cap
 - Splits the completed ranking into one, two, or three end-of-session slideshow sets
 - Auto-saves the browser session on the same device so you can refresh and resume
 - Exports the top GIFs themselves as a ZIP with numbered filenames so the order stays intact

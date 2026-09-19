@@ -1,6 +1,7 @@
 const SAVE_FILES_KEY = "gif-ranker-files";
 const SAVE_STATE_KEY = "gif-ranker-state";
 const MAX_HISTORY = 250;
+const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "ico", "jpeg", "jpg", "png", "svg", "tif", "tiff", "webp"]);
 
 const elements = {
   gifInput: document.getElementById("gif-input"),
@@ -287,7 +288,7 @@ function getPreviewDataUrl(item) {
         binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
       }
 
-      const mediaType = item.file.type || "image/gif";
+      const mediaType = getImageMimeType(item.file);
       item.previewUrl = `data:${mediaType};base64,${btoa(binary)}`;
       item.previewPromise = null;
       return item.previewUrl;
@@ -791,8 +792,33 @@ function sanitizeFilename(name) {
   return name.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-").replace(/\s+/g, " ").trim();
 }
 
-function ensureGifExtension(name) {
-  return /\.gif$/i.test(name) ? name : `${name}.gif`;
+function getFileExtension(name) {
+  const match = /\.([^.]+)$/.exec(name.trim());
+  return match ? match[1].toLowerCase() : "";
+}
+
+function getImageMimeType(file) {
+  if (file.type && file.type.startsWith("image/")) {
+    return file.type;
+  }
+
+  const extension = getFileExtension(file.name || "");
+  const mimeTypes = {
+    avif: "image/avif", bmp: "image/bmp", gif: "image/gif", heic: "image/heic", heif: "image/heif",
+    ico: "image/x-icon", jpeg: "image/jpeg", jpg: "image/jpeg", png: "image/png", svg: "image/svg+xml",
+    tif: "image/tiff", tiff: "image/tiff", webp: "image/webp"
+  };
+  return mimeTypes[extension] || "application/octet-stream";
+}
+
+function ensureImageExtension(item) {
+  const safeName = sanitizeFilename(item.name);
+  if (getFileExtension(safeName)) {
+    return safeName;
+  }
+
+  const extension = getImageMimeType(item.file).split("/").pop().replace("svg+xml", "svg").replace("jpeg", "jpg");
+  return `${safeName}.${extension || "img"}`;
 }
 
 function padRank(index, total) {
@@ -801,7 +827,7 @@ function padRank(index, total) {
 }
 
 function createOrderedExportName(item, index, total) {
-  const safeName = ensureGifExtension(sanitizeFilename(item.name));
+  const safeName = ensureImageExtension(item);
   return `${padRank(index, total)}-${safeName}`;
 }
 
@@ -1093,15 +1119,15 @@ async function sharePreparedZip() {
   }
 }
 
-function getGifFiles(fileList) {
-  return Array.from(fileList).filter((file) => file.type === "image/gif" || file.name.toLowerCase().endsWith(".gif"));
+function getImageFiles(fileList) {
+  return Array.from(fileList).filter((file) => (file.type || "").startsWith("image/") || IMAGE_EXTENSIONS.has(getFileExtension(file.name)));
 }
 
 async function addFilesToSelection(fileList) {
-  const files = getGifFiles(fileList);
+  const files = getImageFiles(fileList);
 
   if (files.length === 0) {
-    elements.setupMessage.textContent = "That batch did not contain any GIF files. Try choosing GIFs from Files.";
+    elements.setupMessage.textContent = "That batch did not contain any supported image files. Try choosing GIFs or images from Files.";
     return;
   }
 
@@ -1114,8 +1140,8 @@ async function addFilesToSelection(fileList) {
 
   if (uniqueFiles.length === 0) {
     elements.setupMessage.textContent = duplicates === 1
-      ? "That batch was already selected, so its duplicate GIF was skipped."
-      : `All ${duplicates} GIFs in that batch were already selected, so they were skipped.`;
+      ? "That batch was already selected, so its duplicate image was skipped."
+      : `All ${duplicates} images in that batch were already selected, so they were skipped.`;
     return;
   }
 
@@ -1123,14 +1149,14 @@ async function addFilesToSelection(fileList) {
   state.stage = "selecting";
   updateSelectionUi();
   const duplicateCopy = duplicates > 0 ? ` ${duplicates} exact duplicate${duplicates === 1 ? " was" : "s were"} skipped.` : "";
-  elements.setupMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} added across your batches.${duplicateCopy} Add another batch, or start the full ranking.`;
+  elements.setupMessage.textContent = `${state.items.length} image${state.items.length === 1 ? "" : "s"} added across your batches.${duplicateCopy} Add another batch, or start the full ranking.`;
   elements.saveMessage.textContent = "Saving this batch so it stays selected if iOS returns from the picker.";
 
   await persistFiles();
   if (state.persistenceAvailable) {
     try {
       await dbPut(SAVE_STATE_KEY, serializeState());
-      elements.saveMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} saved. You can safely add another batch.`;
+      elements.saveMessage.textContent = `${state.items.length} image${state.items.length === 1 ? "" : "s"} saved. You can safely add another batch.`;
     } catch (error) {
       elements.saveMessage.textContent = "This batch is selected, but this browser could not save it for a reload.";
     }
@@ -1139,13 +1165,13 @@ async function addFilesToSelection(fileList) {
 
 async function startSelectedRanking() {
   if (state.items.length < 2) {
-    elements.setupMessage.textContent = "Add at least 2 GIFs before starting.";
+    elements.setupMessage.textContent = "Add at least 2 images before starting.";
     return;
   }
 
   configureRankedSets(state.items.length);
   setInputsLocked(true);
-  elements.setupMessage.textContent = `${state.items.length} GIFs loaded. Every GIF will be included in the full final ranking.`;
+  elements.setupMessage.textContent = `${state.items.length} images loaded. Every image will be included in the full final ranking.`;
   elements.saveMessage.textContent = "Saving these GIFs locally so you can resume this session if needed.";
   await persistFiles();
   startRanking();
@@ -1166,10 +1192,10 @@ async function loadFiles(fileList) {
 }
 
 async function legacyStartFromFiles(fileList) {
-  const files = Array.from(fileList).filter((file) => file.type === "image/gif" || file.name.toLowerCase().endsWith(".gif"));
+  const files = getImageFiles(fileList);
 
   if (files.length < 2) {
-    elements.setupMessage.textContent = "Choose at least 2 GIF files to start ranking.";
+    elements.setupMessage.textContent = "Choose at least 2 GIF or image files to start ranking.";
     resetUiForNewSession();
     return;
   }
@@ -1197,7 +1223,7 @@ async function restoreSavedSession() {
         return null;
       }
       return {
-        file: new File([entry.file], entry.name, { type: entry.file.type || "image/gif" }),
+        file: new File([entry.file], entry.name, { type: getImageMimeType(entry.file) }),
         contentHash: entry.contentHash || ""
       };
     })

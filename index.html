@@ -25,9 +25,9 @@
 
     <section class="hero">
       <p class="eyebrow">A better way to choose</p>
-      <h1>Build the GIF line-up you actually want to post.</h1>
+      <h1>Build the image line-up you actually want to post.</h1>
       <p class="intro">
-        Load your GIFs, narrow them down with considered head-to-head choices, then put your final picks in the
+        Load your GIFs and images, narrow them down with considered head-to-head choices, then put your final picks in the
         exact order you want for your post.
       </p>
     </section>
@@ -35,7 +35,7 @@
     <nav class="workflow" aria-label="Ranking stages">
       <div class="workflow-step is-active" id="workflow-load">
         <span class="workflow-number">01</span>
-        <span><strong>Load</strong><small>Add your GIFs</small></span>
+        <span><strong>Load</strong><small>Add your media</small></span>
       </div>
       <div class="workflow-line"></div>
       <div class="workflow-step" id="workflow-screen">
@@ -51,22 +51,22 @@
 
     <section class="panel" id="setup-panel">
       <div class="panel-header">
-        <h2>1. Load your GIFs</h2>
+        <h2>1. Load your GIFs and images</h2>
         <p>Everything runs in your browser. No uploads leave your phone.</p>
       </div>
 
       <label class="picker" for="gif-input">
-        <span class="picker-title">Add a GIF batch</span>
-        <span class="picker-subtitle">You can add more batches before ranking. Every GIF you add is included in the complete ranking.</span>
+        <span class="picker-title">Add a GIF or image batch</span>
+        <span class="picker-subtitle">GIF, PNG, JPG, WebP, and other supported images are welcome. You can add more batches before ranking.</span>
       </label>
-      <input id="gif-input" type="file" accept="image/gif" multiple>
-      <p class="upload-limit-note"><strong>No fixed upload cap.</strong> Exact duplicate GIF files are skipped automatically. On iPhone or iPad, if the picker only adds part of a large selection, tap “Add a GIF batch” again for the next group. The practical limit depends on available memory, storage, and GIF size.</p>
+      <input id="gif-input" type="file" accept="image/*" multiple>
+      <p class="upload-limit-note"><strong>No fixed upload cap.</strong> Exact duplicate image files are skipped automatically. On iPhone or iPad, if the picker only adds part of a large selection, tap “Add a GIF or image batch” again for the next group. The practical limit depends on available memory, storage, and file size.</p>
 
       <div class="setup-grid setup-summary">
         <div class="field field-note">
           <span>Why this is faster</span>
           <p>
-            Every GIF you upload stays in the final ranking. You will put the complete list in order, then browse it
+            Every GIF or image you upload stays in the final ranking. You will put the complete list in order, then browse it
             in polished slideshow sets. Your progress saves automatically on this device.
           </p>
         </div>
@@ -91,7 +91,7 @@
         </div>
       </fieldset>
 
-      <p class="status-message" id="setup-message">Add at least 2 GIFs to start.</p>
+      <p class="status-message" id="setup-message">Add at least 2 images to start.</p>
       <div class="actions setup-actions">
         <button class="primary-button hidden" id="start-ranking-button" type="button">Start full ranking</button>
         <button class="secondary-button hidden" id="reset-selection-button" type="button">Reset selected GIFs</button>
