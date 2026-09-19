@@ -210,18 +210,61 @@ function createItemsFromFiles(files) {
   appendItemsFromFiles(files);
 }
 
-function appendItemsFromFiles(files) {
+function appendItemsFromFiles(files, hashes = []) {
   const firstIndex = state.items.length;
   const additions = files.map((file, index) => ({
     id: `gif-${firstIndex + index}`,
     name: file.name,
     file,
+    contentHash: hashes[index] || "",
     url: URL.createObjectURL(file),
     previewUrl: "",
     previewPromise: null
   }));
   state.items.push(...additions);
   state.itemById = new Map(state.items.map((item) => [item.id, item]));
+}
+
+async function getFileContentHash(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const digest = await crypto.subtle.digest("SHA-256", buffer);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  // Modern iOS Safari supports SHA-256 above. This fallback still prevents nearly all accidental duplicates.
+  return `crc32-${crc32(bytes).toString(16)}-${bytes.byteLength}`;
+}
+
+async function excludeDuplicateFiles(files) {
+  const existingHashes = new Set();
+
+  for (const item of state.items) {
+    if (!item.contentHash) {
+      item.contentHash = await getFileContentHash(item.file);
+    }
+    existingHashes.add(item.contentHash);
+  }
+
+  const uniqueFiles = [];
+  const uniqueHashes = [];
+  let duplicates = 0;
+
+  for (const file of files) {
+    const hash = await getFileContentHash(file);
+    if (existingHashes.has(hash)) {
+      duplicates += 1;
+      continue;
+    }
+
+    existingHashes.add(hash);
+    uniqueFiles.push(file);
+    uniqueHashes.push(hash);
+  }
+
+  return { uniqueFiles, uniqueHashes, duplicates };
 }
 
 function getPreviewDataUrl(item) {
@@ -828,7 +871,7 @@ async function persistFiles() {
   try {
     await dbPut(
       SAVE_FILES_KEY,
-      state.items.map((item) => ({ id: item.id, name: item.name, file: item.file }))
+      state.items.map((item) => ({ id: item.id, name: item.name, file: item.file, contentHash: item.contentHash }))
     );
     state.persistenceAvailable = true;
     elements.saveMessage.textContent = "Auto-save is on. You can refresh later and resume on this device.";
@@ -1067,10 +1110,20 @@ async function addFilesToSelection(fileList) {
     return;
   }
 
-  appendItemsFromFiles(files);
+  const { uniqueFiles, uniqueHashes, duplicates } = await excludeDuplicateFiles(files);
+
+  if (uniqueFiles.length === 0) {
+    elements.setupMessage.textContent = duplicates === 1
+      ? "That batch was already selected, so its duplicate GIF was skipped."
+      : `All ${duplicates} GIFs in that batch were already selected, so they were skipped.`;
+    return;
+  }
+
+  appendItemsFromFiles(uniqueFiles, uniqueHashes);
   state.stage = "selecting";
   updateSelectionUi();
-  elements.setupMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} added across your batches. Add another batch, or start the full ranking.`;
+  const duplicateCopy = duplicates > 0 ? ` ${duplicates} exact duplicate${duplicates === 1 ? " was" : "s were"} skipped.` : "";
+  elements.setupMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} added across your batches.${duplicateCopy} Add another batch, or start the full ranking.`;
   elements.saveMessage.textContent = "Saving this batch so it stays selected if iOS returns from the picker.";
 
   await persistFiles();
@@ -1138,22 +1191,28 @@ async function restoreSavedSession() {
 
   clearInMemoryState();
 
-  const files = filesRecord
+  const restoredFiles = filesRecord
     .map((entry) => {
       if (!entry || !(entry.file instanceof Blob)) {
         return null;
       }
-      return new File([entry.file], entry.name, { type: entry.file.type || "image/gif" });
+      return {
+        file: new File([entry.file], entry.name, { type: entry.file.type || "image/gif" }),
+        contentHash: entry.contentHash || ""
+      };
     })
     .filter(Boolean);
 
-  if (files.length < 2) {
+  if (restoredFiles.length < 2) {
     elements.setupMessage.textContent = "The saved session was incomplete, so it could not be restored.";
     await clearSavedSession();
     return;
   }
 
-  createItemsFromFiles(files);
+  createItemsFromFiles(restoredFiles.map((entry) => entry.file));
+  state.items.forEach((item, index) => {
+    item.contentHash = restoredFiles[index].contentHash;
+  });
   state.persistenceAvailable = true;
   deserializeState(snapshot);
 
