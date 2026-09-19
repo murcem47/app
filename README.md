@@ -9,6 +9,7 @@ This folder now contains two iPhone-friendly versions:
 
 - Lets you choose your GIF files directly in the browser
 - Uses a two-loss screening stage, so a GIF is never removed after just one comparison
+- Offers a detailed four-loss mode for a more considered shortlist with extra head-to-head choices
 - Fully orders the final top-`N` GIFs in a separate final-ranking stage
 - Auto-saves the browser session on the same device so you can refresh and resume
 - Exports the top GIFs themselves as a ZIP with numbered filenames so the order stays intact
@@ -32,6 +33,16 @@ Use the Scriptable version in `scriptable/GIF Ranker.js`.
 4. Run the script and choose `Pick a folder`.
 
 See `scriptable/README.md` for the full flow.
+
+## Windows desktop app
+
+This folder can now run as a private Windows desktop app. It does not upload your GIFs.
+
+1. Open PowerShell in this folder.
+2. Run `npm install` once.
+3. Run `npm start` to open GIF Ranker.
+
+To make a portable app folder containing `GIF-Ranker.exe`, run `npm run package:win`. Open the resulting `GIF-Ranker.exe` in the `release` folder. You can move that packaged folder anywhere on your PC; keep its contents together.
 
 ## Hosted web app option
 

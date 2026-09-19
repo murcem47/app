@@ -40,7 +40,7 @@
       <div class="workflow-line"></div>
       <div class="workflow-step" id="workflow-screen">
         <span class="workflow-number">02</span>
-        <span><strong>Screen</strong><small>Two losses to exit</small></span>
+        <span><strong>Screen</strong><small id="workflow-screen-copy">Two losses to exit</small></span>
       </div>
       <div class="workflow-line"></div>
       <div class="workflow-step" id="workflow-order">
@@ -63,7 +63,7 @@
 
       <div class="setup-grid">
         <label class="field">
-          <span>How many do you want to keep?</span>
+          <span>GIFs in each ranked set</span>
           <input id="top-count" type="number" min="1" max="200" value="20" inputmode="numeric">
         </label>
 
@@ -75,6 +75,42 @@
           </p>
         </div>
       </div>
+
+      <fieldset class="set-selector" id="set-selector">
+        <legend>How many ranked sets?</legend>
+        <p class="mode-selector-intro">Each set has the number above. For example, two sets of 20 produces ranks #1–#20 and #21–#40.</p>
+        <div class="set-options">
+          <label class="set-option is-selected" for="set-count-1">
+            <input id="set-count-1" name="set-count" type="radio" value="1" checked>
+            <strong>1 set</strong><span>Rank #1–#20</span>
+          </label>
+          <label class="set-option" for="set-count-2">
+            <input id="set-count-2" name="set-count" type="radio" value="2">
+            <strong>2 sets</strong><span>Rank #1–#40</span>
+          </label>
+          <label class="set-option" for="set-count-3">
+            <input id="set-count-3" name="set-count" type="radio" value="3">
+            <strong>3 sets</strong><span>Rank #1–#60</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="mode-selector" id="mode-selector">
+        <legend>Choose your ranking depth</legend>
+        <p class="mode-selector-intro">Pick this before loading your GIFs. Detailed mode gives every GIF more chances before it can leave the selection.</p>
+        <div class="mode-options">
+          <label class="mode-option is-selected" for="mode-quick">
+            <input id="mode-quick" name="ranking-mode" type="radio" value="quick" checked>
+            <span class="mode-option-title">Quick</span>
+            <span class="mode-option-copy">Two losses to remove a GIF. Best when you want fewer comparisons.</span>
+          </label>
+          <label class="mode-option" for="mode-detailed">
+            <input id="mode-detailed" name="ranking-mode" type="radio" value="detailed">
+            <span class="mode-option-title">Detailed</span>
+            <span class="mode-option-copy">Four losses to remove a GIF. More matchups and a more considered shortlist.</span>
+          </label>
+        </div>
+      </fieldset>
 
       <p class="status-message" id="setup-message">Waiting for your GIFs.</p>
       <div class="actions setup-actions">
@@ -148,6 +184,28 @@
         <button class="primary-button" id="copy-top-button" type="button">Copy top list</button>
         <button class="secondary-button" id="copy-all-button" type="button">Copy cut list</button>
       </div>
+
+      <section class="slideshow" id="slideshow" aria-label="Final ranking slideshow">
+        <div class="slideshow-header">
+          <div>
+            <p class="stage-kicker">Final showcase</p>
+            <h3 id="slideshow-title">Your ranked GIFs</h3>
+          </div>
+          <div class="slideshow-tabs" id="slideshow-tabs" aria-label="Choose ranked set"></div>
+        </div>
+        <div class="slideshow-stage">
+          <div class="slideshow-rank" id="slideshow-rank">#1</div>
+          <img class="slideshow-image" id="slideshow-image" alt="">
+          <div class="slideshow-caption">
+            <span class="slideshow-counter" id="slideshow-counter">1 of 20</span>
+            <strong id="slideshow-name"></strong>
+          </div>
+          <div class="slideshow-controls">
+            <button class="slideshow-button" id="slideshow-previous" type="button" aria-label="Show previous GIF">←</button>
+            <button class="slideshow-button" id="slideshow-next" type="button" aria-label="Show next GIF">→</button>
+          </div>
+        </div>
+      </section>
 
       <div class="results-block">
         <div class="results-header">
