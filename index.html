@@ -61,6 +61,13 @@
       </label>
       <input id="gif-input" type="file" accept="image/*" multiple>
       <p class="upload-limit-note"><strong>No fixed upload cap.</strong> Exact duplicate image files are skipped automatically. On iPhone or iPad, if the picker only adds part of a large selection, tap “Add a GIF or image batch” again for the next group. The practical limit depends on available memory, storage, and file size.</p>
+      <div class="selection-preview hidden" id="selection-preview">
+        <div class="selection-preview-header">
+          <strong id="selection-count">0 files ready to rank</strong>
+          <span id="selection-summary"></span>
+        </div>
+        <ul class="selection-file-list" id="selection-file-list"></ul>
+      </div>
 
       <div class="setup-grid setup-summary">
         <div class="field field-note">

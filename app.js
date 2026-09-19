@@ -5,6 +5,10 @@ const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "heic", "heif", "ico", "
 
 const elements = {
   gifInput: document.getElementById("gif-input"),
+  selectionPreview: document.getElementById("selection-preview"),
+  selectionCount: document.getElementById("selection-count"),
+  selectionSummary: document.getElementById("selection-summary"),
+  selectionFileList: document.getElementById("selection-file-list"),
   startRankingButton: document.getElementById("start-ranking-button"),
   resetSelectionButton: document.getElementById("reset-selection-button"),
   setCountOne: document.getElementById("set-count-1"),
@@ -137,6 +141,35 @@ function updateSelectionUi() {
   const isSetup = state.stage === "idle" || state.stage === "selecting";
   elements.startRankingButton.classList.toggle("hidden", !isSetup || !hasEnoughGifs);
   elements.resetSelectionButton.classList.toggle("hidden", !isSetup || state.items.length === 0);
+  renderSelectionPreview();
+}
+
+function renderSelectionPreview() {
+  const maxVisibleFiles = 16;
+  const imageTypes = new Map();
+
+  state.items.forEach((item) => {
+    const extension = getFileExtension(item.name) || "image";
+    imageTypes.set(extension, (imageTypes.get(extension) || 0) + 1);
+  });
+
+  elements.selectionPreview.classList.toggle("hidden", state.items.length === 0);
+  elements.selectionCount.textContent = `${state.items.length} file${state.items.length === 1 ? "" : "s"} ready to rank`;
+  elements.selectionSummary.textContent = Array.from(imageTypes, ([extension, count]) => `${count} ${extension.toUpperCase()}`).join(" · ");
+  elements.selectionFileList.innerHTML = "";
+
+  state.items.slice(0, maxVisibleFiles).forEach((item) => {
+    const listItem = document.createElement("li");
+    listItem.textContent = item.name;
+    elements.selectionFileList.appendChild(listItem);
+  });
+
+  if (state.items.length > maxVisibleFiles) {
+    const remaining = document.createElement("li");
+    remaining.className = "selection-file-list-more";
+    remaining.textContent = `+ ${state.items.length - maxVisibleFiles} more files`;
+    elements.selectionFileList.appendChild(remaining);
+  }
 }
 
 function resetUiForNewSession() {
@@ -144,6 +177,8 @@ function resetUiForNewSession() {
   elements.resultsPanel.classList.add("hidden");
   elements.topList.innerHTML = "";
   elements.fullList.innerHTML = "";
+  elements.selectionPreview.classList.add("hidden");
+  elements.selectionFileList.innerHTML = "";
   elements.topListCopy.textContent = "";
   elements.slideshow.classList.add("hidden");
   elements.slideshowTabs.innerHTML = "";
@@ -241,31 +276,41 @@ async function getFileContentHash(file) {
 
 async function excludeDuplicateFiles(files) {
   const existingHashes = new Set();
+  const existingNames = new Set();
 
   for (const item of state.items) {
     if (!item.contentHash) {
       item.contentHash = await getFileContentHash(item.file);
     }
     existingHashes.add(item.contentHash);
+    existingNames.add(normalizeFileName(item.name));
   }
 
   const uniqueFiles = [];
   const uniqueHashes = [];
-  let duplicates = 0;
+  let contentDuplicates = 0;
+  let nameDuplicates = 0;
 
   for (const file of files) {
+    const normalizedName = normalizeFileName(file.name);
+    if (existingNames.has(normalizedName)) {
+      nameDuplicates += 1;
+      continue;
+    }
+
     const hash = await getFileContentHash(file);
     if (existingHashes.has(hash)) {
-      duplicates += 1;
+      contentDuplicates += 1;
       continue;
     }
 
     existingHashes.add(hash);
+    existingNames.add(normalizedName);
     uniqueFiles.push(file);
     uniqueHashes.push(hash);
   }
 
-  return { uniqueFiles, uniqueHashes, duplicates };
+  return { uniqueFiles, uniqueHashes, contentDuplicates, nameDuplicates };
 }
 
 function getPreviewDataUrl(item) {
@@ -797,6 +842,10 @@ function getFileExtension(name) {
   return match ? match[1].toLowerCase() : "";
 }
 
+function normalizeFileName(name) {
+  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
 function getImageMimeType(file) {
   if (file.type && file.type.startsWith("image/")) {
     return file.type;
@@ -1120,7 +1169,9 @@ async function sharePreparedZip() {
 }
 
 function getImageFiles(fileList) {
-  return Array.from(fileList).filter((file) => (file.type || "").startsWith("image/") || IMAGE_EXTENSIONS.has(getFileExtension(file.name)));
+  // The native picker is already limited to images by accept="image/*". Do not discard a selected
+  // file based on a browser-reported MIME type; iOS and Windows sometimes leave it blank or mislabel it.
+  return Array.from(fileList);
 }
 
 async function addFilesToSelection(fileList) {
@@ -1136,20 +1187,21 @@ async function addFilesToSelection(fileList) {
     return;
   }
 
-  const { uniqueFiles, uniqueHashes, duplicates } = await excludeDuplicateFiles(files);
+  const { uniqueFiles, uniqueHashes, contentDuplicates, nameDuplicates } = await excludeDuplicateFiles(files);
+  const duplicates = contentDuplicates + nameDuplicates;
 
   if (uniqueFiles.length === 0) {
     elements.setupMessage.textContent = duplicates === 1
       ? "That batch was already selected, so its duplicate image was skipped."
-      : `All ${duplicates} images in that batch were already selected, so they were skipped.`;
+      : `All ${duplicates} images in that batch were skipped because they matched an existing file or filename.`;
     return;
   }
 
   appendItemsFromFiles(uniqueFiles, uniqueHashes);
   state.stage = "selecting";
   updateSelectionUi();
-  const duplicateCopy = duplicates > 0 ? ` ${duplicates} exact duplicate${duplicates === 1 ? " was" : "s were"} skipped.` : "";
-  elements.setupMessage.textContent = `${state.items.length} image${state.items.length === 1 ? "" : "s"} added across your batches.${duplicateCopy} Add another batch, or start the full ranking.`;
+  const duplicateCopy = duplicates > 0 ? ` ${duplicates} duplicate${duplicates === 1 ? " was" : "s were"} skipped (${nameDuplicates} matching name${nameDuplicates === 1 ? "" : "s"}, ${contentDuplicates} matching file${contentDuplicates === 1 ? "" : "s"}).` : "";
+  elements.setupMessage.textContent = `${state.items.length} image${state.items.length === 1 ? "" : "s"} added across your batches.${duplicateCopy} Check the ready-to-rank list, then add another batch or start the full ranking.`;
   elements.saveMessage.textContent = "Saving this batch so it stays selected if iOS returns from the picker.";
 
   await persistFiles();
