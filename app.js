@@ -133,7 +133,7 @@ function setInputsLocked(isLocked) {
 
 function updateSelectionUi() {
   const hasEnoughGifs = state.items.length >= 2;
-  const isSetup = state.stage === "idle";
+  const isSetup = state.stage === "idle" || state.stage === "selecting";
   elements.startRankingButton.classList.toggle("hidden", !isSetup || !hasEnoughGifs);
   elements.resetSelectionButton.classList.toggle("hidden", !isSetup || state.items.length === 0);
 }
@@ -1062,15 +1062,26 @@ async function addFilesToSelection(fileList) {
     return;
   }
 
-  if (state.stage !== "idle") {
+  if (state.stage !== "idle" && state.stage !== "selecting") {
     elements.setupMessage.textContent = "Restart or finish the current ranking before adding another batch.";
     return;
   }
 
   appendItemsFromFiles(files);
+  state.stage = "selecting";
   updateSelectionUi();
   elements.setupMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} added across your batches. Add another batch, or start the full ranking.`;
-  elements.saveMessage.textContent = "Your selection will be saved once you start ranking.";
+  elements.saveMessage.textContent = "Saving this batch so it stays selected if iOS returns from the picker.";
+
+  await persistFiles();
+  if (state.persistenceAvailable) {
+    try {
+      await dbPut(SAVE_STATE_KEY, serializeState());
+      elements.saveMessage.textContent = `${state.items.length} GIF${state.items.length === 1 ? "" : "s"} saved. You can safely add another batch.`;
+    } catch (error) {
+      elements.saveMessage.textContent = "This batch is selected, but this browser could not save it for a reload.";
+    }
+  }
 }
 
 async function startSelectedRanking() {
@@ -1145,9 +1156,17 @@ async function restoreSavedSession() {
   createItemsFromFiles(files);
   state.persistenceAvailable = true;
   deserializeState(snapshot);
-  setInputsLocked(true);
 
   setRankedSetCount(state.setCount);
+  if (state.stage === "selecting") {
+    setInputsLocked(false);
+    resetUiForNewSession();
+    elements.setupMessage.textContent = `Restored ${state.items.length} selected GIFs. Add another batch, or start the full ranking.`;
+    elements.saveMessage.textContent = "Your unfinished selection is saved on this device.";
+    return;
+  }
+
+  setInputsLocked(true);
   elements.setupMessage.textContent = `Restored ${state.items.length} GIFs and your saved progress.`;
   elements.saveMessage.textContent = "Auto-save is on for this restored session too.";
   updateSavedSessionButtons(true);
@@ -1168,6 +1187,10 @@ async function initSavedSessionUi() {
     updateSavedSessionButtons(hasSavedSession);
 
     if (hasSavedSession) {
+      if (snapshot.stage === "selecting") {
+        await restoreSavedSession();
+        return;
+      }
       elements.setupMessage.textContent = "A saved session is available on this device.";
       elements.saveMessage.textContent = "You can resume where you left off or clear it and start fresh.";
     } else {
